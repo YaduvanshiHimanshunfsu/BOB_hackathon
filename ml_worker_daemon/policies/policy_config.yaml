@@ -1,0 +1,46 @@
+# ==================================================
+# CIFE Risk Policy Configuration
+# ==================================================
+# This file defines the configurable thresholds
+# for the 4-tier risk policy engine.
+# Modify these values to tune sensitivity.
+
+thresholds:
+  low_max: 34
+  moderate_max: 54
+  high_max: 74
+  # Anything above high_max is CRITICAL
+
+# Fusion weights for full model (session 11+)
+full_model_weights:
+  behavioral: 0.55
+  device: 0.35
+  context: 0.10
+
+# EWMA smoothing factor
+ewma_alpha: 0.1
+
+# Z-score ceiling for BTS conversion
+z_ceiling: 5.0
+
+# Baseline poisoning guard
+baseline_update_block_threshold: 30
+
+# Telemetry frequency
+passive_interval_seconds: 30
+critical_events:
+  - login
+  - fund_transfer_initiate
+  - beneficiary_add
+  - password_change
+  - otp_page_load
+  - profile_update
+  - logout
+
+# Contextual bonuses (additive points)
+context_bonuses:
+  off_hours: 8
+  geo_velocity: 15
+  high_value_txn: 5
+  rapid_logins: 10
+  vpn_proxy: 7

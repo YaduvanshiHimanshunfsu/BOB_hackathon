@@ -1,0 +1,136 @@
+# =================================================================
+# Contextual Identity Fusion Engine — Docker Compose
+# One-command deployment: docker-compose up --build
+# =================================================================
+
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------
+  # Redis — Message broker (Streams) + session cache
+  # ---------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: cife_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ---------------------------------------------------------------
+  # PostgreSQL — User baselines + risk audit ledger
+  # ---------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: cife_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cife_db}
+      POSTGRES_USER: ${POSTGRES_USER:-cife_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_strong_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cife_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ---------------------------------------------------------------
+  # FastAPI Gateway — Telemetry ingestion API
+  # ---------------------------------------------------------------
+  api_gateway:
+    build:
+      context: ./api_gateway
+      dockerfile: Dockerfile
+    container_name: cife_api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-cife_db}
+      - POSTGRES_USER=${POSTGRES_USER:-cife_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme_strong_password}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  # ML Worker Daemon — Background risk scoring processor
+  # ---------------------------------------------------------------
+  ml_worker:
+    build:
+      context: ./ml_worker_daemon
+      dockerfile: Dockerfile
+    container_name: cife_ml_worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-cife_db}
+      - POSTGRES_USER=${POSTGRES_USER:-cife_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme_strong_password}
+      - WORKER_BATCH_SIZE=${WORKER_BATCH_SIZE:-50}
+      - EWMA_ALPHA=${EWMA_ALPHA:-0.1}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  # Admin Dashboard — Streamlit real-time monitoring
+  # ---------------------------------------------------------------
+  admin_dashboard:
+    build:
+      context: ./admin_dashboard
+      dockerfile: Dockerfile
+    container_name: cife_dashboard
+    ports:
+      - "${STREAMLIT_PORT:-8501}:8501"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-cife_db}
+      - POSTGRES_USER=${POSTGRES_USER:-cife_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme_strong_password}
+    depends_on:
+      - api_gateway
+      - ml_worker
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  # Frontend Banking Mock — React (Vite) dev server
+  # ---------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend_banking_mock
+      dockerfile: Dockerfile
+    container_name: cife_frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:${API_PORT:-8000}
+    depends_on:
+      - api_gateway
+
+volumes:
+  redis_data:
+  postgres_data:
