@@ -27,13 +27,13 @@ def render_risk_heatmap(df: pd.DataFrame):
     fig = px.scatter(
         df, 
         x="timestamp", 
-        y="composite_score", 
+        y="composite_risk_score", 
         color="risk_tier",
-        hover_data=["user_id", "session_id", "action_taken"],
+        hover_data=["user_id", "session_id", "action"],
         color_discrete_map=color_map,
         labels={
             "timestamp": "Time",
-            "composite_score": "Composite Risk Score (0-100)",
+            "composite_risk_score": "Composite Risk Score (0-100)",
             "risk_tier": "Risk Tier"
         },
         title="Live Transaction Risk Analysis"

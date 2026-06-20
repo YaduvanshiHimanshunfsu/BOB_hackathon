@@ -65,7 +65,7 @@ class TelemetryPayload(BaseModel):
     def validate_event_trigger(cls, v: str) -> str:
         valid_triggers = [
             "passive", "login", "fund_transfer_initiate", "beneficiary_add",
-            "password_change", "otp_page_load", "profile_update", "logout",
+            "password_change", "otp_page_load", "profile_update", "logout", "session_start",
         ]
         if v not in valid_triggers:
             v = "passive"  # Default to passive for unknown triggers

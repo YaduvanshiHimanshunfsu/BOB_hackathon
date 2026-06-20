@@ -2,61 +2,83 @@
 admin_dashboard/utils/db_connector.py
 =====================================
 Database connector for the Streamlit Admin Dashboard.
-Fetches risk history, device registries, and active sessions from PostgreSQL.
+Fetches risk history, device registries, and active sessions from SQLite.
 """
 
-import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import sqlite3
 import pandas as pd
-import streamlit as st
+import os
+import json
+from shared.logger import get_logger
 
-@st.cache_resource
+logger = get_logger("DBConnector")
+DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "cife_demo.db"))
+
 def get_db_connection():
-    """Create a cached database connection for Streamlit."""
-    return psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=os.getenv("POSTGRES_PORT", "5432"),
-        dbname=os.getenv("POSTGRES_DB", "cife_db"),
-        user=os.getenv("POSTGRES_USER", "cife_user"),
-        password=os.getenv("POSTGRES_PASSWORD", "changeme_strong_password"),
-        cursor_factory=RealDictCursor
-    )
+    try:
+        return sqlite3.connect(DB_PATH)
+    except sqlite3.Error as e:
+        logger.error(f"Failed to connect to SQLite: {e}")
+        return None
 
 def fetch_risk_history(limit: int = 100) -> pd.DataFrame:
     """Fetch the latest risk evaluations as a Pandas DataFrame."""
     conn = get_db_connection()
+    if not conn:
+        return pd.DataFrame()
+    
     query = """
-        SELECT id, user_id, session_id, composite_score, risk_tier, action_taken, timestamp 
+        SELECT timestamp, user_id, session_id, event_trigger, composite_risk_score, risk_tier, action, breakdown
         FROM risk_ledger 
         ORDER BY timestamp DESC 
-        LIMIT %s
+        LIMIT ?
     """
     df = pd.read_sql_query(query, conn, params=(limit,))
+    conn.close()
     return df
 
 def fetch_device_registry(user_id: str = None) -> pd.DataFrame:
     """Fetch registered devices, optionally filtered by user."""
     conn = get_db_connection()
-    if user_id:
-        query = "SELECT * FROM device_registry WHERE user_id = %s ORDER BY last_seen DESC"
-        params = (user_id,)
-    else:
-        query = "SELECT * FROM device_registry ORDER BY last_seen DESC LIMIT 50"
-        params = ()
+    if not conn:
+        return pd.DataFrame()
         
-    df = pd.read_sql_query(query, conn, params=params)
-    return df
+    try:
+        query = "SELECT user_id, device_registry FROM user_baselines"
+        df = pd.read_sql_query(query, conn)
+        
+        # Flatten the JSON device registry into a list of dictionaries for the DataFrame
+        devices_list = []
+        for _, row in df.iterrows():
+            current_user_id = row['user_id']
+            if user_id and current_user_id != user_id:
+                continue
+                
+            try:
+                registry = json.loads(row['device_registry']) if row['device_registry'] else []
+                for device in registry:
+                    device['user_id'] = current_user_id
+                    devices_list.append(device)
+            except Exception:
+                pass
+                
+        return pd.DataFrame(devices_list)
+    finally:
+        conn.close()
 
 def fetch_user_risk_timeline(user_id: str, limit: int = 50) -> pd.DataFrame:
     """Fetch detailed risk history for a specific user."""
     conn = get_db_connection()
+    if not conn:
+        return pd.DataFrame()
+        
     query = """
-        SELECT timestamp, composite_score, risk_tier, action_taken, breakdown, context_factors
+        SELECT timestamp, composite_risk_score as composite_score, risk_tier, action as action_taken, breakdown
         FROM risk_ledger 
-        WHERE user_id = %s 
+        WHERE user_id = ? 
         ORDER BY timestamp ASC 
-        LIMIT %s
+        LIMIT ?
     """
     df = pd.read_sql_query(query, conn, params=(user_id, limit))
+    conn.close()
     return df

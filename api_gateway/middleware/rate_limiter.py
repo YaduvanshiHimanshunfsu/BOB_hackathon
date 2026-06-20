@@ -1,50 +1,36 @@
 """
 api_gateway/middleware/rate_limiter.py
-=====================================
-Redis-backed rate limiting middleware.
-Prevents telemetry flood attacks and brute-force API abuse.
+======================================
+In-memory rate limiter for Demo Mode.
 """
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
 import time
-from fastapi import Request, HTTPException
-from starlette.middleware.base import BaseHTTPMiddleware
-from api_gateway.redis_client import get_redis
 from shared.constants import RATE_LIMIT_PER_MINUTE
 
+# Simple in-memory rate limiting dictionary
+_rate_limit_cache = {}
 
-class RateLimiterMiddleware(BaseHTTPMiddleware):
-    """
-    Rate limiter using Redis sliding window counters.
-    Limits requests per client IP per minute.
-    Only applies to telemetry ingestion endpoints.
-    """
+async def rate_limit_middleware(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    current_time = int(time.time())
+    
+    # We only rate limit telemetry endpoints to prevent spam
+    if request.url.path.startswith("/api/v1/telemetry"):
+        # Create or update sliding window
+        window = _rate_limit_cache.get(client_ip, [])
+        # Keep only timestamps within the last 60 seconds
+        window = [ts for ts in window if current_time - ts < 60]
+        
+        if len(window) >= RATE_LIMIT_PER_MINUTE:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded. Try again in a minute."}
+            )
+            
+        window.append(current_time)
+        _rate_limit_cache[client_ip] = window
 
-    async def dispatch(self, request: Request, call_next):
-        # Only rate-limit telemetry ingestion
-        if "/api/v1/telemetry/ingest" not in request.url.path:
-            return await call_next(request)
-
-        client_ip = request.client.host if request.client else "unknown"
-        rate_key = f"rate:{client_ip}:{int(time.time() // 60)}"
-
-        try:
-            redis = await get_redis()
-            current_count = await redis.incr(rate_key)
-
-            # Set expiry on first increment (auto-cleanup after 2 minutes)
-            if current_count == 1:
-                await redis.expire(rate_key, 120)
-
-            if current_count > RATE_LIMIT_PER_MINUTE:
-                raise HTTPException(
-                    status_code=429,
-                    detail=f"Rate limit exceeded: {RATE_LIMIT_PER_MINUTE} requests/min. "
-                           f"Current: {current_count}",
-                )
-        except HTTPException:
-            raise
-        except Exception:
-            # If Redis is down, allow the request through (fail-open)
-            pass
-
-        return await call_next(request)
+    response = await call_next(request)
+    return response

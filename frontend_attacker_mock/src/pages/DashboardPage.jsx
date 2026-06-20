@@ -72,15 +72,15 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200">
             {/* Navbar */}
-            <nav className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+            <nav className="bg-slate-900 border-b border-red-900/50 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
                 <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded bg-gradient-to-tr from-orange-500 to-red-500 flex items-center justify-center font-bold text-white shadow-lg shadow-orange-500/20">B</div>
-                    <h1 className="text-xl font-bold tracking-tight text-white">BOB <span className="font-light text-slate-400">Dashboard</span></h1>
+                    <div className="w-8 h-8 rounded bg-gradient-to-tr from-rose-700 to-red-900 flex items-center justify-center font-bold text-white shadow-lg shadow-red-500/20">A</div>
+                    <h1 className="text-xl font-bold tracking-tight text-white">ATTACKER <span className="font-light text-red-400">Terminal</span></h1>
                 </div>
                 <div className="flex items-center space-x-6">
-                    <span className="text-sm text-slate-400 flex items-center"><div className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></div> {userId}</span>
+                    <span className="text-sm text-rose-400 flex items-center"><div className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse"></div> Root access: {userId}</span>
                     <button onClick={handleLogout} className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm transition font-medium border border-slate-700">
-                        Logout
+                        Disconnect
                     </button>
                 </div>
             </nav>
@@ -89,18 +89,18 @@ export default function DashboardPage() {
                 
                 {/* Main Action Area */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-slate-900/50 backdrop-blur-sm p-8 rounded-2xl border border-slate-800 shadow-xl">
+                    <div className="bg-slate-900/50 backdrop-blur-sm p-8 rounded-2xl border border-red-900/50 shadow-xl">
                         <h2 className="text-2xl font-bold mb-6 text-white flex items-center">
-                            <span className="bg-blue-500/20 text-blue-400 p-2 rounded-lg mr-3">💸</span> 
-                            Quick Transfer
+                            <span className="bg-red-500/20 text-red-400 p-2 rounded-lg mr-3">💰</span> 
+                            Siphon Funds
                         </h2>
                         <form onSubmit={handleTransfer} className="space-y-5">
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-2">Beneficiary Account</label>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Drop Account</label>
                                 <input 
                                     type="text" 
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                                    placeholder="Enter account number or VPA"
+                                    className="w-full bg-slate-950 border border-red-900/50 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
+                                    placeholder="Enter drop account number"
                                     value={beneficiary}
                                     onChange={(e) => setBeneficiary(e.target.value)}
                                     required
@@ -110,26 +110,26 @@ export default function DashboardPage() {
                                 <label className="block text-sm font-medium text-slate-400 mb-2">Amount (₹)</label>
                                 <input 
                                     type="number" 
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                    className="w-full bg-slate-950 border border-red-900/50 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
                                     placeholder="0.00"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
                                     required
                                 />
                             </div>
-                            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-blue-500/25 transition">
-                                Transfer Funds Securely
+                            <button type="submit" className="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-red-500/25 transition">
+                                Execute Unauthorized Transfer
                             </button>
                         </form>
                     </div>
 
                     {/* Educational Banner */}
-                    <div className="bg-blue-900/20 border border-blue-500/30 rounded-2xl p-6 flex items-start space-x-4">
-                        <div className="text-blue-400 text-2xl">💡</div>
+                    <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-6 flex items-start space-x-4">
+                        <div className="text-red-400 text-2xl">⚠️</div>
                         <div>
-                            <h3 className="text-white font-bold mb-1">Continuous Monitoring Active</h3>
+                            <h3 className="text-white font-bold mb-1">Evasion Status: Compromised</h3>
                             <p className="text-slate-400 text-sm leading-relaxed">
-                                Our CIFE engine is silently analyzing your keystroke dynamics, mouse curvature, and device fingerprint. Try typing unusually fast or transferring a large amount to see your risk score react in real-time.
+                                This terminal runs on a different physical device footprint than the victim. The CIFE ML Engine should instantly detect the hardware mismatch and block this attempt, regardless of whether you know the password.
                             </p>
                         </div>
                     </div>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
                 <div className="bg-slate-900/80 backdrop-blur-md p-8 rounded-2xl border border-slate-700 shadow-2xl relative overflow-hidden">
                     {/* Background glow effect based on risk */}
                     <div className={`absolute -inset-1 blur-3xl opacity-20 z-0 ${
-                        !riskState ? 'bg-blue-500' :
+                        !riskState ? 'bg-red-500' :
                         riskState.risk_tier === 'LOW' ? 'bg-emerald-500' :
                         riskState.risk_tier === 'MODERATE' ? 'bg-amber-500' :
                         riskState.risk_tier === 'HIGH' ? 'bg-orange-500' : 'bg-rose-500'
@@ -147,10 +147,10 @@ export default function DashboardPage() {
 
                     <div className="relative z-10">
                         <h2 className="text-lg font-bold mb-6 text-white flex justify-between items-center tracking-wide">
-                            SECURITY ENGINE
+                            DEFENSE DETECTION
                             <span className="flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                             </span>
                         </h2>
                         
@@ -158,7 +158,7 @@ export default function DashboardPage() {
                             <div className="space-y-6">
                                 {/* Big Score Display */}
                                 <div className="text-center p-6 bg-slate-950/50 rounded-2xl border border-slate-800">
-                                    <p className="text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider">Composite Score</p>
+                                    <p className="text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider">Victim's Engine Score</p>
                                     <div className="flex items-baseline justify-center">
                                         <span className="text-5xl font-black text-white">{riskState.composite_risk_score.toFixed(1)}</span>
                                         <span className="text-xl text-slate-500 ml-1">/100</span>
@@ -185,8 +185,8 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                                <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-                                <p className="text-sm text-blue-400 font-medium animate-pulse">Establishing baseline...</p>
+                                <div className="w-10 h-10 border-4 border-red-500/20 border-t-red-500 rounded-full animate-spin"></div>
+                                <p className="text-sm text-red-400 font-medium animate-pulse">Probing defenses...</p>
                             </div>
                         )}
                     </div>

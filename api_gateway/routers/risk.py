@@ -2,43 +2,59 @@
 api_gateway/routers/risk.py
 ===========================
 Risk score query endpoint.
-Returns the latest computed risk score for a given user from Redis cache.
+Returns the latest computed risk score for a given user from in-memory cache.
 """
 
 import time
-from fastapi import APIRouter, HTTPException
-from api_gateway.redis_client import get_latest_risk_score
+import json
+from fastapi import APIRouter, HTTPException, Depends
 from api_gateway.schemas.risk_schema import RiskScoreResponse
+from api_gateway.cache import risk_cache
 
-router = APIRouter(prefix="/api/v1/risk", tags=["Risk Scoring"])
+router = APIRouter(prefix="/api/v1/risk", tags=["Risk Score API"])
 
 
-@router.get(
-    "/{user_id}",
-    response_model=RiskScoreResponse,
-    summary="Get latest risk score for a user",
-    description="Returns the most recent Composite Risk Score computed by the ML worker.",
-)
-async def get_risk_score(user_id: str):
+@router.get("/{user_id}", response_model=RiskScoreResponse)
+async def get_latest_risk_score(user_id: str):
     """
-    Fetch the latest risk score for a user from Redis cache.
-    The ML worker daemon updates this cache after each scoring evaluation.
+    Fetch the latest computed Contextual Risk Score for a user.
+    Reads from the in-memory risk cache.
     """
-    data = await get_latest_risk_score(user_id)
-
+    # Fetch from memory cache
+    data = risk_cache.get(f"risk:{user_id}")
+    
     if not data:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No risk score found for user '{user_id}'. "
+        return RiskScoreResponse(
+            user_id=user_id,
+            session_id=None,
+            composite_risk_score=0.0,
+            risk_tier="UNKNOWN",
+            action="ALLOW",
+            behavioral_score=0.0,
+            device_score=0.0,
+            context_bonus=0.0,
+            timestamp="",
+            message="No active risk profile found for this user. "
                    "User may not have any telemetry data yet.",
         )
+
+    # In our memory cache, data is already a dict.
+    # But if breakdown is somehow a string, handle it.
+    breakdown_data = data.get("breakdown", {})
+    if isinstance(breakdown_data, str):
+        try:
+            breakdown = json.loads(breakdown_data)
+        except Exception:
+            breakdown = {}
+    else:
+        breakdown = breakdown_data
 
     return RiskScoreResponse(
         user_id=user_id,
         session_id=data.get("session_id"),
         composite_risk_score=float(data.get("composite_risk_score", 0)),
-        behavioral_score=float(data.get("behavioral_score", 0)),
-        device_score=float(data.get("device_score", 0)),
+        behavioral_score=float(breakdown.get("behavioral_score", 0)),
+        device_score=float(breakdown.get("device_score", 0)),
         context_bonus=float(data.get("context_bonus", 0)),
         risk_tier=data.get("risk_tier", "LOW"),
         action=data.get("action", "ALLOW"),

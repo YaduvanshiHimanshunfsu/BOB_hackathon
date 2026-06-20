@@ -69,14 +69,14 @@ class TelemetryEngine {
     // --- Device Fingerprinting (Weighted Jaccard targets) ---
     async generateDeviceFingerprint() {
         return {
-            canvas_hash: this.getCanvasHash(),
-            webgl_renderer: this.getWebGLRenderer(),
-            audio_hash: await this.getAudioHash(),
-            screen: `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            language: navigator.language,
-            user_agent: navigator.userAgent,
-            fonts_hash: this.getFontsHash()
+            canvas_hash: "spoofed_attacker_canvas_hash_0987654321",
+            webgl_renderer: "ANGLE (Software Adapter)",
+            audio_hash: "spoofed_attacker_audio_hash_0987654321",
+            screen: "1366x768x24",
+            timezone: "Europe/Moscow",
+            language: "ru-RU",
+            user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            fonts_hash: "0011001100"
         };
     }
 

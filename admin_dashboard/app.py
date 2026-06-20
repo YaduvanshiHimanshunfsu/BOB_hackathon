@@ -25,15 +25,21 @@ st.set_page_config(
 # --- CSS Styling ---
 st.markdown("""
 <style>
-    .metric-card {
-        background-color: #1e1e2e;
-        border-radius: 5px;
-        padding: 15px;
-        text-align: center;
-        border-left: 4px solid #3498db;
+    /* Premium dark mode glassmorphism effects */
+    [data-testid="stMetricValue"] {
+        font-size: 2.5rem !important;
+        font-weight: 800 !important;
+        color: #e0e0ff !important;
     }
-    .metric-value { font-size: 24px; font-weight: bold; color: #fff; }
-    .metric-label { font-size: 12px; color: #a0a0b0; text-transform: uppercase; }
+    [data-testid="stMetricLabel"] {
+        font-size: 1.1rem !important;
+        color: #8fa0c0 !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1e2e 100%);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -61,8 +67,9 @@ try:
     risk_df = fetch_risk_history(limit=500)
     devices_df = fetch_device_registry()
 except Exception as e:
-    st.error(f"Database connection failed. Ensure PostgreSQL is running. Error: {e}")
-    st.stop()
+    st.error(f"Database connection failed. Ensure SQLite is working. Error: {e}")
+    risk_df = pd.DataFrame()
+    devices_df = pd.DataFrame()
 
 # Auto-refresh logic
 if auto_refresh:
@@ -78,13 +85,13 @@ high_events = len(risk_df[risk_df['risk_tier'] == 'HIGH']) if not risk_df.empty 
 total_devices = len(devices_df)
 
 with col1:
-    st.markdown(f"<div class='metric-card'><div class='metric-value'>{total_events}</div><div class='metric-label'>Events Monitored</div></div>", unsafe_allow_html=True)
+    st.metric("Events Monitored", total_events)
 with col2:
-    st.markdown(f"<div class='metric-card' style='border-color: #c0392b;'><div class='metric-value'>{critical_events}</div><div class='metric-label'>Critical Blocks</div></div>", unsafe_allow_html=True)
+    st.metric("Critical Blocks", critical_events)
 with col3:
-    st.markdown(f"<div class='metric-card' style='border-color: #e67e22;'><div class='metric-value'>{high_events}</div><div class='metric-label'>Step-up Challenges</div></div>", unsafe_allow_html=True)
+    st.metric("Step-up Challenges", high_events)
 with col4:
-    st.markdown(f"<div class='metric-card' style='border-color: #27ae60;'><div class='metric-value'>{total_devices}</div><div class='metric-label'>Registered Devices</div></div>", unsafe_allow_html=True)
+    st.metric("Registered Devices", total_devices)
 
 st.write("") # Spacer
 
