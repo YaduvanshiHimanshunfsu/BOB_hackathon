@@ -257,7 +257,7 @@ class BehavioralScorer:
                 new_mean = old_mean + (current_value - old_mean) / n
                 new_variance = (
                     old_variance + (current_value - old_mean) * (current_value - new_mean)
-                ) / n if n > 1 else 1.0
+                ) / (n - 1) if n > 1 else 1.0
             else:
                 # EWMA update
                 new_mean = self.alpha * current_value + (1 - self.alpha) * old_mean

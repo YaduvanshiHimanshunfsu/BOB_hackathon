@@ -85,7 +85,9 @@ class TelemetryEngine {
         try {
             const canvas = document.createElement('canvas');
             const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!gl) return "no_webgl";
             const ext = gl.getExtension('WEBGL_debug_renderer_info');
+            if (!ext) return "no_debug_renderer";
             return gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);
         } catch (e) {
             return "webgl_error";
@@ -93,12 +95,71 @@ class TelemetryEngine {
     }
 
     async getAudioHash() {
-        // Simplified mockup for audio stack hash
-        return "audio_hash_mock_12345";
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const analyser = audioCtx.createAnalyser();
+            const gain = audioCtx.createGain();
+            const scriptProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
+
+            gain.gain.value = 0; // Mute it
+            oscillator.type = "triangle";
+            oscillator.connect(analyser);
+            analyser.connect(scriptProcessor);
+            scriptProcessor.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            oscillator.start(0);
+            return new Promise((resolve) => {
+                scriptProcessor.onaudioprocess = function () {
+                    oscillator.stop();
+                    scriptProcessor.disconnect();
+                    audioCtx.close();
+                    
+                    const data = new Float32Array(analyser.frequencyBinCount);
+                    analyser.getFloatFrequencyData(data);
+                    
+                    // Generate a simple hash from the frequency data
+                    let hash = 0;
+                    for (let i = 0; i < data.length; i++) {
+                        hash = ((hash << 5) - hash) + data[i];
+                        hash |= 0;
+                    }
+                    resolve(hash.toString(16));
+                };
+            });
+        } catch (e) {
+            return "audio_error";
+        }
     }
     
     getFontsHash() {
-        return "fonts_hash_mock_54321";
+        // Simple DOM-based font detection fingerprint
+        const baseFonts = ['monospace', 'sans-serif', 'serif'];
+        const testFonts = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New', 'Verdana', 'Georgia', 'Comic Sans MS', 'Trebuchet MS', 'Arial Black', 'Impact'];
+        
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const text = "abcdefghijklmnopqrstuvwxyz0123456789";
+        
+        let hashStr = "";
+        for (const font of testFonts) {
+            let detected = false;
+            for (const baseFont of baseFonts) {
+                ctx.font = `72px ${baseFont}`;
+                const baselineWidth = ctx.measureText(text).width;
+                
+                ctx.font = `72px '${font}', ${baseFont}`;
+                const testWidth = ctx.measureText(text).width;
+                
+                if (testWidth !== baselineWidth) {
+                    detected = true;
+                    break;
+                }
+            }
+            hashStr += detected ? "1" : "0";
+        }
+        return hashStr;
     }
 
     // --- Behavioral Tracking ---

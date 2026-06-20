@@ -63,9 +63,12 @@ class MLWorker:
         user_id = payload.get("user_id")
         session_id = payload.get("session_id")
         
-        # Parse nested JSON strings from Redis
-        behavioral_data = json.loads(payload.get("behavioral", "{}"))
-        device_data = json.loads(payload.get("device", "{}"))
+        # Parse nested JSON strings from Redis (handling both str and dict cases)
+        behavioral_raw = payload.get("behavioral", "{}")
+        device_raw = payload.get("device", "{}")
+        
+        behavioral_data = json.loads(behavioral_raw) if isinstance(behavioral_raw, str) else behavioral_raw
+        device_data = json.loads(device_raw) if isinstance(device_raw, str) else device_raw
         
         # 1. Fetch historical context
         baseline = self.baseline_manager.get_baseline(user_id)
